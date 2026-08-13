@@ -1,0 +1,30 @@
+﻿{
+  "explorer.compactFolders": false,
+
+  "files.exclude": {
+    "**/.git": true,
+    "**/.next": true,
+    "**/node_modules": true,
+    "**/src/generated": true,
+
+    "**/.env": true,
+    "**/.env.*": true,
+
+    "**/next-env.d.ts": true,
+    "**/package-lock.json": true,
+    "**/*.tsbuildinfo": true,
+
+    "**/prisma/migrations/migration_lock.toml": true,
+    "**/public/uploads/.gitkeep": true,
+
+    "**/.vscode": true
+  },
+
+  "search.exclude": {
+    "**/.git": true,
+    "**/.next": true,
+    "**/node_modules": true,
+    "**/src/generated": true,
+    "**/package-lock.json": true
+  }
+}
