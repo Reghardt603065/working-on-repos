@@ -29,7 +29,6 @@ export default function HomePage() {
           <p className="hero-copy">GradConnect brings graduate job discovery, skill tracking, hackathons, peer accountability and portfolio building into one focused platform—without trying to replace LinkedIn, GitHub or your favourite learning tools.</p>
           <div className="hero-actions">
             <Link className="btn btn-primary" href="/register">Start your journey <ArrowRight size={18}/></Link>
-            <Link className="btn btn-secondary" href="/login">Open demo account</Link>
           </div>
           <div className="tags" style={{marginTop:24}}>
             {['Graduate focused','Portfolio ready','Free-tier friendly','Responsive'].map(item=><span className="badge gold" key={item}><CheckCircle2 size={13}/> {item}</span>)}

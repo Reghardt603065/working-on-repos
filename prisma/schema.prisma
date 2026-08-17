@@ -377,3 +377,35 @@ model JobFetchLog {
 
   @@index([source, startedAt])
 }
+
+model CertificationListing {
+  id              String   @id @default(uuid())
+
+  title           String
+  provider        String
+  description     String?
+
+  url             String
+  source          String
+  externalId      String
+
+  category        String?
+  level           String?
+  duration        String?
+
+  cost            String?
+  isFree          Boolean  @default(false)
+
+  certificateType String?
+
+  skills          String[] @default([])
+
+  lastVerified    DateTime @default(now())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([source, externalId])
+  @@index([provider])
+  @@index([isFree])
+  @@index([category])
+}

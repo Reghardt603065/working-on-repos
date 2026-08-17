@@ -17,8 +17,10 @@ export const registerSchema = z.object({
     .regex(/[A-Z]/, "Password needs an uppercase letter")
     .regex(/[a-z]/, "Password needs a lowercase letter")
     .regex(/[0-9]/, "Password needs a number"),
-  skills: z.array(z.string().trim().min(1).max(40)).max(15).default([]),
-  acceptedTerms: z.literal(true),
+  skills: z
+    .array(z.string().trim().min(1).max(40))
+    .max(15)
+    .default([]),
 });
 
 export const loginSchema = z.object({
