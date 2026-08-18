@@ -1,0 +1,411 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  GRADUATE
+  ADMIN
+}
+
+enum ApplicationStatus {
+  SAVED
+  APPLIED
+  INTERVIEW
+  OFFER
+  REJECTED
+  WITHDRAWN
+}
+
+enum CertificationStatus {
+  PLANNED
+  IN_PROGRESS
+  COMPLETED
+  EXPIRED
+}
+
+enum PeerLinkStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  BLOCKED
+}
+
+enum PeerRelationship {
+  PEER
+  MENTOR
+  MENTEE
+}
+
+enum GoalStatus {
+  ACTIVE
+  COMPLETED
+  PAUSED
+  CANCELLED
+}
+
+enum TeamMemberStatus {
+  INVITED
+  ACTIVE
+  DECLINED
+  LEFT
+}
+
+enum NotificationType {
+  JOB
+  APPLICATION
+  CERTIFICATION
+  HACKATHON
+  PEER
+  MESSAGE
+  SYSTEM
+}
+
+enum ActivityType {
+  PROFILE_UPDATED
+  JOB_SAVED
+  JOB_APPLIED
+  CERTIFICATION_ADDED
+  CERTIFICATION_COMPLETED
+  HACKATHON_JOINED
+  PROJECT_ADDED
+  GITHUB_SYNCED
+  GOAL_UPDATED
+}
+
+model User {
+  id                    String                   @id @default(uuid())
+  name                  String
+  email                 String                   @unique
+  passwordHash          String?
+  image                 String?
+  username              String                   @unique
+  headline              String?
+  bio                   String?
+  location              String?
+  skills                String[]                 @default([])
+  githubUsername        String?
+  linkedinUrl           String?
+  consentAcceptedAt     DateTime?
+  role                   UserRole                 @default(GRADUATE)
+  createdAt              DateTime                 @default(now())
+  updatedAt              DateTime                 @updatedAt
+  certifications        Certification[]
+  savedJobs              SavedJob[]
+  applications           JobApplication[]
+  portfolioProjects      PortfolioProject[]
+  hackathonParticipations HackathonParticipant[]
+  teamsCreated           Team[]                   @relation("TeamCreator")
+  teamMemberships        TeamMember[]
+  peerLinksRequested     PeerLink[]               @relation("PeerRequester")
+  peerLinksReceived      PeerLink[]               @relation("PeerAddressee")
+  goalsOwned             Goal[]                   @relation("GoalOwner")
+  goalsPartnered         Goal[]                   @relation("GoalPartner")
+  messagesSent           Message[]                @relation("MessageSender")
+  messagesReceived       Message[]                @relation("MessageReceiver")
+  notifications          Notification[]
+  activities             Activity[]
+  notificationPreference NotificationPreference?
+
+  @@index([username])
+  @@index([createdAt])
+}
+
+model JobListing {
+  id              String           @id @default(uuid())
+  source          String
+  externalId      String
+  title           String
+  company         String
+  description     String
+  location        String?
+  jobType         String?
+  experienceLevel String?
+  category        String?
+  salaryMin       Int?
+  salaryMax       Int?
+  currency        String?
+  applyUrl        String
+  sourceUrl       String?
+  remote          Boolean          @default(false)
+  postedAt        DateTime?
+  expiresAt       DateTime?
+  rawData         Json?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  savedBy         SavedJob[]
+  applications    JobApplication[]
+
+  @@unique([source, externalId])
+  @@index([title])
+  @@index([company])
+  @@index([location])
+  @@index([postedAt])
+  @@index([remote])
+}
+
+model SavedJob {
+  id        String     @id @default(uuid())
+  userId    String
+  jobId     String
+  createdAt DateTime   @default(now())
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  job       JobListing @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, jobId])
+  @@index([userId])
+}
+
+model JobApplication {
+  id        String            @id @default(uuid())
+  userId    String
+  jobId     String
+  status    ApplicationStatus @default(APPLIED)
+  appliedAt DateTime?
+  deadline  DateTime?
+  notes     String?
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  job       JobListing        @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, jobId])
+  @@index([userId, status])
+}
+
+model Certification {
+  id            String              @id @default(uuid())
+  userId        String
+  name          String
+  issuer        String
+  status        CertificationStatus @default(PLANNED)
+  progress      Int                 @default(0)
+  issueDate     DateTime?
+  expiryDate    DateTime?
+  credentialUrl String?
+  skills        String[]            @default([])
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  user          User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@index([expiryDate])
+}
+
+model Hackathon {
+  id                   String                  @id @default(uuid())
+  name                 String
+  description          String
+  location             String?
+  mode                 String                  @default("ONLINE")
+  startDate            DateTime
+  endDate              DateTime
+  registrationDeadline DateTime?
+  websiteUrl           String?
+  technologies         String[]                @default([])
+  source               String                  @default("GradConnect")
+  createdAt            DateTime                @default(now())
+  updatedAt            DateTime                @updatedAt
+  participants         HackathonParticipant[]
+  teams                Team[]
+
+  @@index([startDate])
+}
+
+model HackathonParticipant {
+  id           String    @id @default(uuid())
+  userId       String
+  hackathonId  String
+  joinedAt     DateTime  @default(now())
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  hackathon    Hackathon @relation(fields: [hackathonId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, hackathonId])
+  @@index([hackathonId])
+}
+
+model Team {
+  id          String       @id @default(uuid())
+  hackathonId String
+  createdById String
+  name        String
+  description String?
+  repositoryUrl String?
+  workspaceData Json?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  hackathon   Hackathon    @relation(fields: [hackathonId], references: [id], onDelete: Cascade)
+  createdBy   User         @relation("TeamCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  members     TeamMember[]
+
+  @@unique([hackathonId, name])
+  @@index([createdById])
+}
+
+model TeamMember {
+  id        String           @id @default(uuid())
+  teamId    String
+  userId    String
+  role      String           @default("Member")
+  status    TeamMemberStatus @default(ACTIVE)
+  joinedAt  DateTime         @default(now())
+  team      Team             @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
+  @@index([userId])
+}
+
+model PeerLink {
+  id           String           @id @default(uuid())
+  requesterId  String
+  addresseeId  String
+  status       PeerLinkStatus   @default(PENDING)
+  relationship PeerRelationship @default(PEER)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  requester    User             @relation("PeerRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  addressee    User             @relation("PeerAddressee", fields: [addresseeId], references: [id], onDelete: Cascade)
+
+  @@unique([requesterId, addresseeId])
+  @@index([addresseeId, status])
+}
+
+model Goal {
+  id          String     @id @default(uuid())
+  ownerId     String
+  partnerId   String?
+  title       String
+  description String?
+  targetDate  DateTime?
+  progress    Int        @default(0)
+  status      GoalStatus @default(ACTIVE)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  owner       User       @relation("GoalOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  partner     User?      @relation("GoalPartner", fields: [partnerId], references: [id], onDelete: SetNull)
+
+  @@index([ownerId, status])
+  @@index([partnerId])
+}
+
+model PortfolioProject {
+  id           String   @id @default(uuid())
+  userId       String
+  title        String
+  slug         String
+  description  String
+  technologies String[] @default([])
+  githubUrl    String?
+  liveUrl      String?
+  imageUrl     String?
+  featured     Boolean  @default(false)
+  source       String   @default("MANUAL")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, slug])
+  @@index([userId, featured])
+}
+
+model Message {
+  id         String   @id @default(uuid())
+  senderId   String
+  receiverId String
+  body       String
+  readAt     DateTime?
+  createdAt  DateTime @default(now())
+  sender     User     @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver   User     @relation("MessageReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  @@index([senderId, receiverId, createdAt])
+  @@index([receiverId, readAt])
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String
+  type      NotificationType @default(SYSTEM)
+  title     String
+  message   String
+  link      String?
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt, createdAt])
+}
+
+model NotificationPreference {
+  id                    String  @id @default(uuid())
+  userId                String  @unique
+  newJobs               Boolean @default(true)
+  applicationReminders  Boolean @default(true)
+  certificationReminders Boolean @default(true)
+  peerUpdates           Boolean @default(true)
+  hackathonReminders    Boolean @default(true)
+  user                  User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Activity {
+  id        String       @id @default(uuid())
+  userId    String
+  type      ActivityType
+  message   String
+  metadata  Json?
+  createdAt DateTime     @default(now())
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+model JobFetchLog {
+  id          String   @id @default(uuid())
+  source      String
+  fetched     Int      @default(0)
+  inserted    Int      @default(0)
+  updated     Int      @default(0)
+  failed      Int      @default(0)
+  error       String?
+  startedAt   DateTime @default(now())
+  completedAt DateTime?
+
+  @@index([source, startedAt])
+}
+
+model CertificationListing {
+  id              String   @id @default(uuid())
+
+  title           String
+  provider        String
+  description     String?
+
+  url             String
+  source          String
+  externalId      String
+
+  category        String?
+  level           String?
+  duration        String?
+
+  cost            String?
+  isFree          Boolean  @default(false)
+
+  certificateType String?
+
+  skills          String[] @default([])
+
+  lastVerified    DateTime @default(now())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([source, externalId])
+  @@index([provider])
+  @@index([isFree])
+  @@index([category])
+}
