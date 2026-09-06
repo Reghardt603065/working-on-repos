@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { jsonError, jsonSuccess, readJson, requireApiUser } from "@/lib/api";
-import { notifyUser } from "@/lib/activity";
+import { notifyUserIfEnabled } from "@/lib/activity";
 
 const schema = z.object({
   addresseeId: z.string().uuid(),
@@ -42,10 +42,23 @@ export async function POST(request: Request) {
   if (!addressee) return jsonError("User not found", 404);
 
   const link = await prisma.peerLink.upsert({
-    where: { requesterId_addresseeId: { requesterId: sessionUser.id, addresseeId: parsed.data.addresseeId } },
-    create: { requesterId: sessionUser.id, addresseeId: parsed.data.addresseeId, relationship: parsed.data.relationship },
+    where: {
+      requesterId_addresseeId: { requesterId: sessionUser.id, addresseeId: parsed.data.addresseeId }
+    },
+    create: {
+      requesterId: sessionUser.id,
+      addresseeId: parsed.data.addresseeId,
+      relationship: parsed.data.relationship
+    },
     update: { relationship: parsed.data.relationship, status: "PENDING" },
   });
-  await notifyUser(addressee.id, "PEER", "New peer connection request", `${sessionUser.name || "A graduate"} wants to connect with you.`, "/peers");
+  await notifyUserIfEnabled(
+    addressee.id,
+    "peerUpdates",
+    "PEER",
+    "New peer connection request",
+    `${sessionUser.name || "A graduate"} wants to connect with you.`,
+    "/peers",
+  );
   return jsonSuccess(link, 201);
 }
